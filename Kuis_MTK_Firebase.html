@@ -1,0 +1,79 @@
+<!-- Tambahkan di bagian bawah file HTML kamu sebelum </body> -->
+
+<!-- Firebase Library -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+<script>
+  // Ganti dengan konfigurasi Firebase milikmu
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+    const firebaseConfig = {
+        apiKey: "AIzaSyCKUUyTCxZ7fqbz_sfixUV1Z2oB0gBzLOE",
+        authDomain: "mathquiz-caf90.firebaseapp.com",
+        databaseURL: "https://mathquiz-caf90-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "mathquiz-caf90",
+        storageBucket: "mathquiz-caf90.firebasestorage.app",
+        messagingSenderId: "68594226257",
+        appId: "1:68594226257:web:29a5d9f049f270742e9470",
+        measurementId: "G-1KPQ335ZBV"
+      };
+
+  // Inisialisasi Firebase
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  // Simpan skor ke Firestore
+  function saveScoreToFirebase(score) {
+    db.collection("leaderboard").doc(currentUser.username).set({
+      fullName: currentUser.fullName,
+      username: currentUser.username,
+      level: currentQuiz.level,
+      totalScore: firebase.firestore.FieldValue.increment(score),
+      quizCount: firebase.firestore.FieldValue.increment(1),
+      bestScore: Math.max(currentUser.bestScore, score),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true }).then(() => {
+      console.log("Skor tersimpan di Firebase");
+    }).catch((error) => {
+      console.error("Gagal simpan ke Firebase:", error);
+    });
+  }
+
+  // Tambahkan ini ke dalam fungsi finishQuiz setelah hitung skor:
+  // saveScoreToFirebase(score);
+
+  // Ambil leaderboard dari Firestore
+  function updateLeaderboard() {
+    const filter = document.getElementById('leaderboardFilter').value;
+    let query = db.collection("leaderboard");
+
+    if (filter !== 'all') {
+      query = query.where("level", "==", filter);
+    }
+
+    query.orderBy("totalScore", "desc").limit(10).get().then(snapshot => {
+      const leaderboardContent = document.getElementById('leaderboardContent');
+      leaderboardContent.innerHTML = '';
+
+      if (snapshot.empty) {
+        leaderboardContent.innerHTML = `<div class='text-center text-gray-500'>Belum ada data leaderboard</div>`;
+        return;
+      }
+
+      snapshot.docs.forEach((doc, index) => {
+        const data = doc.data();
+        const isCurrentUser = data.username === currentUser.username;
+
+        const item = document.createElement('div');
+        item.className = `p-3 border rounded mb-2 ${isCurrentUser ? 'bg-blue-50 border-blue-400' : 'bg-white border-gray-300'}`;
+        item.innerHTML = `
+          <div class='flex justify-between'>
+            <div>#${index + 1} ${data.fullName} (${data.level})</div>
+            <div>Skor: ${data.totalScore}</div>
+          </div>`;
+
+        leaderboardContent.appendChild(item);
+      });
+    });
+  }
+</script>
